@@ -1,6 +1,6 @@
 # Binarios
 *.exe
-tricera
+/tricera
 *.old
 
 # Reportes sensibles
