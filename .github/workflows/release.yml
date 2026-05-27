@@ -1,0 +1,210 @@
+# ══════════════════════════════════════════════════════════════════════════════
+# StegoSec Tricera — Pipeline de Release Seguro con Firma Minisign
+# ══════════════════════════════════════════════════════════════════════════════
+#
+# Este workflow se ejecuta automáticamente cuando se sube un tag con formato
+# semántico (v*). Compila el binario de Go para Windows (amd64), le inyecta
+# la versión vía ldflags, lo firma con minisign, y crea un GitHub Release
+# con los artefactos firmados.
+#
+# ┌─────────────────────────────────────────────────────────────────────────┐
+# │  CONFIGURACIÓN REQUERIDA DE SECRETOS EN GITHUB                        │
+# │                                                                        │
+# │  Ve a: Settings → Secrets and variables → Actions → New repository     │
+# │  secret, y crea los siguientes secretos:                               │
+# │                                                                        │
+# │  1. MINISIGN_SECRET_KEY                                                │
+# │     Contenido: El contenido COMPLETO del archivo tricera.key           │
+# │     (generado con: minisign -G -p tricera.pub -s tricera.key)          │
+# │     Este archivo tiene múltiples líneas. Copia TODO el contenido.      │
+# │                                                                        │
+# │  2. MINISIGN_SECRET_KEY_PASSWORD                                       │
+# │     Contenido: La contraseña que usaste al generar la clave privada.   │
+# │     Si generaste la clave sin contraseña, crea el secreto vacío ("").  │
+# │                                                                        │
+# │  IMPORTANTE: NUNCA subas tricera.key al repositorio.                   │
+# │  Agrega "*.key" a tu .gitignore para prevenir errores humanos.         │
+# │                                                                        │
+# │  PASOS PARA GENERAR LAS CLAVES (una sola vez):                        │
+# │    1. Instala minisign: https://jedisct1.github.io/minisign/           │
+# │       (Windows: scoop install minisign  ó  choco install minisign)     │
+# │    2. Genera el par de claves:                                         │
+# │       minisign -G -p tricera.pub -s tricera.key                        │
+# │    3. Copia el contenido de tricera.pub al código fuente en:           │
+# │       internal/system/updater.go → constante trustedPublicKey          │
+# │    4. Sube el contenido de tricera.key como secreto MINISIGN_SECRET_KEY│
+# │    5. Sube la contraseña como secreto MINISIGN_SECRET_KEY_PASSWORD     │
+# │    6. Guarda tricera.key en un lugar seguro offline (backup).          │
+# │    7. Sube tricera.pub al repositorio (es pública, no es secreto).     │
+# └─────────────────────────────────────────────────────────────────────────┘
+#
+# USO: Para crear un release, simplemente sube un tag:
+#   git tag v5.4.0
+#   git push origin v5.4.0
+#
+# El pipeline compilará, firmará y publicará automáticamente.
+# ══════════════════════════════════════════════════════════════════════════════
+
+name: 🦖 Tricera Secure Release
+
+on:
+  push:
+    tags:
+      - 'v*'  # Se activa con cualquier tag que empiece con 'v' (v1.0.0, v5.4.0-rc1, etc.)
+
+# SEC-FIX: Permisos mínimos necesarios (Principio de menor privilegio)
+permissions:
+  contents: write  # Necesario para crear GitHub Releases y subir artefactos
+
+env:
+  GO_VERSION: '1.25.0'
+  BINARY_NAME: tricera
+
+jobs:
+  # ──────────────────────────────────────────────────────────────────────────
+  # Job: build-sign-release
+  # Compila el binario, lo firma con minisign, y crea el Release en GitHub.
+  # ──────────────────────────────────────────────────────────────────────────
+  build-sign-release:
+    name: 🔨 Build, Sign & Release
+    runs-on: ubuntu-latest
+
+    steps:
+      # ── Paso 1: Checkout del código ─────────────────────────────────────
+      - name: 📥 Checkout código fuente
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Necesario para acceder a tags y generar changelogs
+
+      # ── Paso 2: Configurar Go ──────────────────────────────────────────
+      - name: 🐹 Configurar Go ${{ env.GO_VERSION }}
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      # ── Paso 3: Verificar dependencias ─────────────────────────────────
+      - name: 📦 Descargar dependencias
+        run: go mod download
+
+      - name: 🔍 Verificar integridad de módulos
+        run: go mod verify
+
+      # ── Paso 4: Análisis estático ──────────────────────────────────────
+      - name: 🧪 Ejecutar go vet (análisis estático)
+        run: go vet ./...
+
+      # ── Paso 5: Extraer versión del tag ────────────────────────────────
+      - name: 🏷️ Extraer versión del tag
+        id: version
+        run: |
+          # Extraer el tag sin el prefijo 'v' (v5.4.0 → 5.4.0)
+          VERSION="${GITHUB_REF_NAME#v}"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "tag=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+          echo "🏷️ Versión detectada: ${VERSION} (tag: ${GITHUB_REF_NAME})"
+
+      # ── Paso 6: Compilar binario para Windows (amd64) ──────────────────
+      # La versión se inyecta en tiempo de compilación usando ldflags.
+      # Esto establece la variable system.Version dentro del binario.
+      - name: 🔨 Compilar binario Windows (amd64) con ldflags
+        env:
+          GOOS: windows
+          GOARCH: amd64
+          CGO_ENABLED: 0
+        run: |
+          echo "🔨 Compilando Tricera v${{ steps.version.outputs.version }} para Windows amd64..."
+          go build \
+            -trimpath \
+            -ldflags "-s -w -X tricera/internal/system.Version=${{ steps.version.outputs.version }}" \
+            -o "${{ env.BINARY_NAME }}.exe" \
+            ./cmd/tricera/
+
+          echo "✅ Binario compilado exitosamente."
+          ls -lh "${{ env.BINARY_NAME }}.exe"
+
+      # ── Paso 7: Generar hash SHA-256 del binario ──────────────────────
+      - name: 🔐 Generar hash SHA-256
+        run: |
+          sha256sum "${{ env.BINARY_NAME }}.exe" > "${{ env.BINARY_NAME }}.exe.sha256"
+          echo "🔐 Hash SHA-256:"
+          cat "${{ env.BINARY_NAME }}.exe.sha256"
+
+      # ── Paso 8: Instalar minisign ─────────────────────────────────────
+      - name: 🔑 Instalar minisign
+        run: |
+          # Instalar minisign desde los repos del sistema
+          sudo apt-get update -qq && sudo apt-get install -y -qq minisign
+          minisign -v
+
+      # ── Paso 9: Firmar el binario con la clave privada ────────────────
+      # La clave privada se inyecta desde GitHub Secrets.
+      # NUNCA se expone en logs ni se persiste en disco más allá de este step.
+      - name: ✍️ Firmar binario con minisign
+        env:
+          MINISIGN_SECRET_KEY: ${{ secrets.MINISIGN_SECRET_KEY }}
+          MINISIGN_PASSWORD: ${{ secrets.MINISIGN_SECRET_KEY_PASSWORD }}
+        run: |
+          # Escribir la clave privada a un archivo temporal seguro
+          KEYFILE=$(mktemp)
+          echo "${MINISIGN_SECRET_KEY}" > "${KEYFILE}"
+
+          # Firmar el binario
+          # -S  = modo firma
+          # -s  = ruta a la clave privada
+          # -m  = archivo a firmar (genera .minisig junto a él)
+          # -t  = comentario de confianza embebido en la firma
+          echo "${MINISIGN_PASSWORD}" | minisign -S \
+            -s "${KEYFILE}" \
+            -m "${{ env.BINARY_NAME }}.exe" \
+            -t "StegoSec Tricera v${{ steps.version.outputs.version }} — Signed Release"
+
+          # SEC-FIX: Borrar la clave privada del disco inmediatamente
+          shred -u "${KEYFILE}" 2>/dev/null || rm -f "${KEYFILE}"
+
+          echo "✅ Binario firmado exitosamente."
+          echo "📄 Archivos generados:"
+          ls -lh "${{ env.BINARY_NAME }}.exe" "${{ env.BINARY_NAME }}.exe.minisig" "${{ env.BINARY_NAME }}.exe.sha256"
+
+      # ── Paso 10: Crear GitHub Release ──────────────────────────────────
+      - name: 🚀 Crear GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: "🦖 Tricera v${{ steps.version.outputs.version }}"
+          body: |
+            ## Tricera v${{ steps.version.outputs.version }}
+
+            ### 📦 Artefactos incluidos
+            | Archivo | Descripción |
+            |---------|-------------|
+            | `tricera.exe` | Binario compilado para Windows x64 |
+            | `tricera.exe.sha256` | Hash SHA-256 para verificación de integridad |
+            | `tricera.exe.minisig` | Firma criptográfica minisign |
+
+            ### 🔐 Verificación de integridad
+            ```powershell
+            # PowerShell — Verificar hash SHA-256
+            Get-FileHash .\tricera.exe -Algorithm SHA256
+            ```
+
+            ### ✍️ Verificación de firma criptográfica
+            ```bash
+            # Requiere minisign instalado (scoop install minisign)
+            minisign -Vm tricera.exe -p tricera.pub
+            ```
+
+            ### 🔄 Actualización automática
+            Si ya tienes una versión anterior de Tricera instalada:
+            ```bash
+            tricera.exe -auto-update
+            ```
+          draft: false
+          prerelease: ${{ contains(steps.version.outputs.tag, 'rc') || contains(steps.version.outputs.tag, 'beta') || contains(steps.version.outputs.tag, 'alpha') }}
+          files: |
+            ${{ env.BINARY_NAME }}.exe
+            ${{ env.BINARY_NAME }}.exe.sha256
+            ${{ env.BINARY_NAME }}.exe.minisig
+          fail_on_unmatched_files: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

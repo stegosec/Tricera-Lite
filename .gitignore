@@ -1,13 +1,26 @@
+# Binarios
+*.exe
+tricera
+*.old
+
+# Reportes sensibles
+*.html
+*.json
+
+# Archivos de configuración
+*.conf
+
+# Python legacy
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
-*.log
+
+# Entorno
 .env
 .venv/
+*.log
+.DS_Store
 dist/
 build/
-.DS_Store
 *.tar
-*.conf
-
