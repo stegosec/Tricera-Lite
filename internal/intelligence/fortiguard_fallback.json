@@ -1,0 +1,142 @@
+[
+  {
+    "id": "FG-IR-24-015",
+    "title": "Out-of-bounds Write in FortiOS SSL-VPN service",
+    "cves": ["CVE-2024-21762"],
+    "severity": "Critical",
+    "cvss": "9.8",
+    "component": "sslvpn",
+    "attack_type": "Remote Code Execution (RCE)",
+    "description": "An out-of-bounds write vulnerability in FortiOS sslvpn may allow a remote attacker to execute arbitrary code or commands via specially crafted HTTP requests.",
+    "reference": "https://www.fortiguard.com/psirt/FG-IR-24-015",
+    "source": "Tricera Offline Threat Intel DB",
+    "vendor_solution": "Upgrade to FortiOS 7.4.3, 7.2.7, 7.0.14, 6.4.15 or above.",
+    "workaround": "Disable SSL-VPN service completely.",
+    "affected_products": [
+      {
+        "name": "FortiOS",
+        "versions": ["6.0", "6.2", "6.4", "7.0", "7.2", "7.4"]
+      }
+    ]
+  },
+  {
+    "id": "FG-IR-24-029",
+    "title": "Format String Vulnerability in fgfm daemon",
+    "cves": ["CVE-2024-23113"],
+    "severity": "Critical",
+    "cvss": "9.8",
+    "component": "fgfm",
+    "attack_type": "Remote Code Execution (RCE)",
+    "description": "A format string vulnerability in FortiOS fgfm daemon may allow a remote unauthenticated attacker to execute arbitrary code or commands via specially crafted packets sent to port 541.",
+    "reference": "https://www.fortiguard.com/psirt/FG-IR-24-029",
+    "source": "Tricera Offline Threat Intel DB",
+    "vendor_solution": "Upgrade to FortiOS 7.4.3, 7.2.7, 7.0.14, 6.4.15 or above.",
+    "workaround": "Restrict access to port 541 using Local-In policies.",
+    "affected_products": [
+      {
+        "name": "FortiOS",
+        "versions": ["6.0", "6.2", "6.4", "7.0", "7.2", "7.4"]
+      }
+    ]
+  },
+  {
+    "id": "FG-IR-23-097",
+    "title": "Heap-based Buffer Overflow in SSLVPN Daemon",
+    "cves": ["CVE-2023-27997"],
+    "severity": "Critical",
+    "cvss": "9.8",
+    "component": "sslvpn",
+    "attack_type": "Remote Code Execution (RCE)",
+    "description": "A heap-based buffer overflow vulnerability in FortiOS sslvpn daemon may allow a remote unauthenticated attacker to execute arbitrary code or commands via specially crafted requests.",
+    "reference": "https://www.fortiguard.com/psirt/FG-IR-23-097",
+    "source": "Tricera Offline Threat Intel DB",
+    "vendor_solution": "Upgrade to FortiOS 7.4.1, 7.2.5, 7.0.12, 6.4.13 or above.",
+    "workaround": "Disable SSL-VPN service.",
+    "affected_products": [
+      {
+        "name": "FortiOS",
+        "versions": ["6.0", "6.2", "6.4", "7.0", "7.2"]
+      }
+    ]
+  },
+  {
+    "id": "FG-IR-22-398",
+    "title": "Heap-based Buffer Overflow in sslvpn daemon (Active Exploitation)",
+    "cves": ["CVE-2022-42475"],
+    "severity": "Critical",
+    "cvss": "9.3",
+    "component": "sslvpn",
+    "attack_type": "Remote Code Execution (RCE)",
+    "description": "A heap-based buffer overflow vulnerability in FortiOS sslvpn daemon may allow a remote unauthenticated attacker to execute arbitrary code or commands via specially crafted TLS requests.",
+    "reference": "https://www.fortiguard.com/psirt/FG-IR-22-398",
+    "source": "Tricera Offline Threat Intel DB",
+    "vendor_solution": "Upgrade to FortiOS 7.2.3, 7.0.9, 6.4.11 or above.",
+    "workaround": "Disable SSL-VPN service.",
+    "affected_products": [
+      {
+        "name": "FortiOS",
+        "versions": ["6.0", "6.2", "6.4", "7.0", "7.2"]
+      }
+    ]
+  },
+  {
+    "id": "FG-IR-22-377",
+    "title": "Authentication Bypass in Administrative Interface",
+    "cves": ["CVE-2022-40684"],
+    "severity": "Critical",
+    "cvss": "9.6",
+    "component": "httpsd",
+    "attack_type": "Authentication Bypass",
+    "description": "An authentication bypass using an alternate path or channel in FortiOS administrative interface may allow a remote unauthenticated attacker to perform administrative actions via specially crafted HTTP/HTTPS requests.",
+    "reference": "https://www.fortiguard.com/psirt/FG-IR-22-377",
+    "source": "Tricera Offline Threat Intel DB",
+    "vendor_solution": "Upgrade to FortiOS 7.2.2, 7.0.7 or above.",
+    "workaround": "Restrict administrative access to trusted hosts only.",
+    "affected_products": [
+      {
+        "name": "FortiOS",
+        "versions": ["7.0", "7.2"]
+      }
+    ]
+  },
+  {
+    "id": "FG-IR-20-199",
+    "title": "Out-of-bounds Write in SSL VPN Daemon",
+    "cves": ["CVE-2021-22125"],
+    "severity": "High",
+    "cvss": "8.3",
+    "component": "sslvpn",
+    "attack_type": "Remote Code Execution (RCE)",
+    "description": "An out-of-bounds write vulnerability in FortiOS SSL VPN daemon may allow a remote unauthenticated attacker to execute arbitrary code or commands via specially crafted HTTP requests.",
+    "reference": "https://www.fortiguard.com/psirt/FG-IR-20-199",
+    "source": "Tricera Offline Threat Intel DB",
+    "vendor_solution": "Upgrade to FortiOS 6.4.3, 6.2.7 or above.",
+    "workaround": "Disable SSL-VPN service.",
+    "affected_products": [
+      {
+        "name": "FortiOS",
+        "versions": ["6.2", "6.4"]
+      }
+    ]
+  },
+  {
+    "id": "FG-IR-20-008",
+    "title": "SSL VPN Authentication Bypass",
+    "cves": ["CVE-2020-12812"],
+    "severity": "Critical",
+    "cvss": "9.8",
+    "component": "sslvpn",
+    "attack_type": "Authentication Bypass",
+    "description": "An authentication bypass vulnerability in FortiOS SSL VPN daemon may allow a remote attacker to log in without MFA or credentials under specific circumstances.",
+    "reference": "https://www.fortiguard.com/psirt/FG-IR-20-008",
+    "source": "Tricera Offline Threat Intel DB",
+    "vendor_solution": "Upgrade to FortiOS 6.4.3, 6.2.5, 6.0.10 or above.",
+    "workaround": "Upgrade firmware immediately.",
+    "affected_products": [
+      {
+        "name": "FortiOS",
+        "versions": ["6.0", "6.2", "6.4"]
+      }
+    ]
+  }
+]

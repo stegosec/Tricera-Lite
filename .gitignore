@@ -6,6 +6,7 @@ tricera
 # Reportes sensibles
 *.html
 *.json
+!internal/intelligence/fortiguard_fallback.json
 
 # Archivos de configuración
 *.conf
