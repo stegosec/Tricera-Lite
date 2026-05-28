@@ -24,7 +24,7 @@ var Version = "dev"
 
 // DefaultUpdateURL es la URL base de GitHub Releases desde donde se descargan los binarios.
 // SEC-FIX: Solo se permite HTTPS. Cambiar esta constante a tu URL de releases real.
-const DefaultUpdateURL = "https://github.com/stegosec/Tricera-lite/releases/latest/download/"
+const DefaultUpdateURL = "https://github.com/stegosec/Tricera-Lite/releases/latest/download/"
 
 // trustedPublicKey es la clave pública minisign embebida en el binario.
 // Esta clave la controla el mantenedor del proyecto y se usa para verificar
