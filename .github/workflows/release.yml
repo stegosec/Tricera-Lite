@@ -104,107 +104,116 @@ jobs:
           echo "tag=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
           echo "🏷️ Versión detectada: ${VERSION} (tag: ${GITHUB_REF_NAME})"
 
-      # ── Paso 6: Compilar binario para Windows (amd64) ──────────────────
-      # La versión se inyecta en tiempo de compilación usando ldflags.
-      # Esto establece la variable system.Version dentro del binario.
-      - name: 🔨 Compilar binario Windows (amd64) con ldflags
-        env:
-          GOOS: windows
-          GOARCH: amd64
-          CGO_ENABLED: 0
+      # ── Paso 6: Compilar binarios para múltiples plataformas ──────────
+      # Compilamos para Windows, Linux y macOS (tanto Intel como Apple Silicon)
+      - name: 🔨 Compilar binarios multiplataforma
         run: |
-          echo "🔨 Compilando Tricera v${{ steps.version.outputs.version }} para Windows amd64..."
-          go build \
-            -trimpath \
-            -ldflags "-s -w -X tricera/internal/system.Version=${{ steps.version.outputs.version }}" \
-            -o "${{ env.BINARY_NAME }}.exe" \
-            ./cmd/tricera/
+          echo "🔨 Compilando para Windows x64..."
+          GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags "-s -w -X tricera/internal/system.Version=${{ steps.version.outputs.version }}" -o "${{ env.BINARY_NAME }}-windows-amd64.exe" ./cmd/tricera/
 
-          echo "✅ Binario compilado exitosamente."
-          ls -lh "${{ env.BINARY_NAME }}.exe"
+          echo "🔨 Compilando para Linux x64..."
+          GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags "-s -w -X tricera/internal/system.Version=${{ steps.version.outputs.version }}" -o "${{ env.BINARY_NAME }}-linux-amd64" ./cmd/tricera/
 
-      # ── Paso 7: Generar hash SHA-256 del binario ──────────────────────
-      - name: 🔐 Generar hash SHA-256
+          echo "🔨 Compilando para macOS Intel x64..."
+          GOOS=darwin GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags "-s -w -X tricera/internal/system.Version=${{ steps.version.outputs.version }}" -o "${{ env.BINARY_NAME }}-darwin-amd64" ./cmd/tricera/
+
+          echo "🔨 Compilando para macOS Apple Silicon arm64..."
+          GOOS=darwin GOARCH=arm64 CGO_ENABLED=0 go build -trimpath -ldflags "-s -w -X tricera/internal/system.Version=${{ steps.version.outputs.version }}" -o "${{ env.BINARY_NAME }}-darwin-arm64" ./cmd/tricera/
+
+          echo "✅ Todos los binarios fueron compilados exitosamente."
+          ls -lh tricera-*
+
+      # ── Paso 7: Generar hashes SHA-256 para todos los binarios ─────────
+      - name: 🔐 Generar hashes SHA-256
         run: |
-          sha256sum "${{ env.BINARY_NAME }}.exe" > "${{ env.BINARY_NAME }}.exe.sha256"
-          echo "🔐 Hash SHA-256:"
-          cat "${{ env.BINARY_NAME }}.exe.sha256"
+          for f in tricera-windows-amd64.exe tricera-linux-amd64 tricera-darwin-amd64 tricera-darwin-arm64; do
+            sha256sum "$f" > "$f.sha256"
+          done
+          echo "🔐 Hashes generados:"
+          cat *.sha256
 
       # ── Paso 8: Instalar minisign ─────────────────────────────────────
       - name: 🔑 Instalar minisign
         run: |
-          # Instalar minisign desde los repos del sistema
           sudo apt-get update -qq && sudo apt-get install -y -qq minisign
           minisign -v
 
-      # ── Paso 9: Firmar el binario con la clave privada ────────────────
-      # La clave privada se inyecta desde GitHub Secrets.
-      # NUNCA se expone en logs ni se persiste en disco más allá de este step.
-      - name: ✍️ Firmar binario con minisign
+      # ── Paso 9: Firmar todos los binarios con la clave privada ─────────
+      - name: ✍️ Firmar binarios con minisign
         env:
           MINISIGN_SECRET_KEY: ${{ secrets.MINISIGN_SECRET_KEY }}
           MINISIGN_PASSWORD: ${{ secrets.MINISIGN_SECRET_KEY_PASSWORD }}
         run: |
-          # Escribir la clave privada a un archivo temporal seguro
           KEYFILE=$(mktemp)
           echo "${MINISIGN_SECRET_KEY}" > "${KEYFILE}"
 
-          # Firmar el binario
-          # -S  = modo firma
-          # -s  = ruta a la clave privada
-          # -m  = archivo a firmar (genera .minisig junto a él)
-          # -t  = comentario de confianza embebido en la firma
-          echo "${MINISIGN_PASSWORD}" | minisign -S \
-            -s "${KEYFILE}" \
-            -m "${{ env.BINARY_NAME }}.exe" \
-            -t "StegoSec Tricera v${{ steps.version.outputs.version }} — Signed Release"
+          # Firmar cada uno de los cuatro binarios generados
+          for f in tricera-windows-amd64.exe tricera-linux-amd64 tricera-darwin-amd64 tricera-darwin-arm64; do
+            echo "${MINISIGN_PASSWORD}" | minisign -S \
+              -s "${KEYFILE}" \
+              -m "$f" \
+              -t "StegoSec Tricera v${{ steps.version.outputs.version }} — Signed Release"
+          done
 
-          # SEC-FIX: Borrar la clave privada del disco inmediatamente
           shred -u "${KEYFILE}" 2>/dev/null || rm -f "${KEYFILE}"
-
-          echo "✅ Binario firmado exitosamente."
-          echo "📄 Archivos generados:"
-          ls -lh "${{ env.BINARY_NAME }}.exe" "${{ env.BINARY_NAME }}.exe.minisig" "${{ env.BINARY_NAME }}.exe.sha256"
+          echo "✅ Todos los binarios fueron firmados exitosamente."
+          ls -lh *.minisig
 
       # ── Paso 10: Crear GitHub Release ──────────────────────────────────
       - name: 🚀 Crear GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.version.outputs.tag }}
-          name: "🦖 Tricera v${{ steps.version.outputs.version }}"
+          name: "Rex Tricera v${{ steps.version.outputs.version }}"
           body: |
-            ## Tricera v${{ steps.version.outputs.version }}
+            ## Tricera v${{ steps.version.outputs.version }} — Multi-OS Release
 
-            ### 📦 Artefactos incluidos
-            | Archivo | Descripción |
-            |---------|-------------|
-            | `tricera.exe` | Binario compilado para Windows x64 |
-            | `tricera.exe.sha256` | Hash SHA-256 para verificación de integridad |
-            | `tricera.exe.minisig` | Firma criptográfica minisign |
+            ### 📦 Artefactos por Sistema Operativo y Arquitectura
+            
+            | Sistema Operativo | Arquitectura | Binario | Firma Minisign | Hash SHA-256 |
+            |-------------------|--------------|---------|----------------|--------------|
+            | **Windows** | x64 (64-bit) | `tricera-windows-amd64.exe` | `tricera-windows-amd64.exe.minisig` | `tricera-windows-amd64.exe.sha256` |
+            | **Linux** | x64 (64-bit) | `tricera-linux-amd64` | `tricera-linux-amd64.minisig` | `tricera-linux-amd64.sha256` |
+            | **macOS** | Intel x64 | `tricera-darwin-amd64` | `tricera-darwin-amd64.minisig` | `tricera-darwin-amd64.sha256` |
+            | **macOS** | Apple Silicon M1/M2/M3 | `tricera-darwin-arm64` | `tricera-darwin-arm64.minisig` | `tricera-darwin-arm64.sha256` |
 
-            ### 🔐 Verificación de integridad
+            ### 🔐 Verificación de Integridad
             ```powershell
-            # PowerShell — Verificar hash SHA-256
-            Get-FileHash .\tricera.exe -Algorithm SHA256
+            # Windows (PowerShell)
+            Get-FileHash .\tricera-windows-amd64.exe -Algorithm SHA256
+            ```
+            ```bash
+            # Linux / macOS (Bash)
+            sha256sum tricera-linux-amd64
             ```
 
-            ### ✍️ Verificación de firma criptográfica
+            ### ✍️ Verificación de Firma Criptográfica (Minisign)
             ```bash
-            # Requiere minisign instalado (scoop install minisign)
-            minisign -Vm tricera.exe -p tricera.pub
+            # Requiere la clave pública del repositorio 'tricera.pub'
+            minisign -Vm tricera-windows-amd64.exe -p tricera.pub
             ```
 
-            ### 🔄 Actualización automática
-            Si ya tienes una versión anterior de Tricera instalada:
+            ### 🔄 Actualización Automática Segura
+            Si tienes una versión anterior de Tricera ya configurada:
             ```bash
-            tricera.exe -auto-update
+            # Tricera detectará tu OS/Arquitectura automáticamente y descargará el correspondiente
+            tricera -auto-update
             ```
           draft: false
           prerelease: ${{ contains(steps.version.outputs.tag, 'rc') || contains(steps.version.outputs.tag, 'beta') || contains(steps.version.outputs.tag, 'alpha') }}
           files: |
-            ${{ env.BINARY_NAME }}.exe
-            ${{ env.BINARY_NAME }}.exe.sha256
-            ${{ env.BINARY_NAME }}.exe.minisig
+            tricera-windows-amd64.exe
+            tricera-windows-amd64.exe.sha256
+            tricera-windows-amd64.exe.minisig
+            tricera-linux-amd64
+            tricera-linux-amd64.sha256
+            tricera-linux-amd64.minisig
+            tricera-darwin-amd64
+            tricera-darwin-amd64.sha256
+            tricera-darwin-amd64.minisig
+            tricera-darwin-arm64
+            tricera-darwin-arm64.sha256
+            tricera-darwin-arm64.minisig
           fail_on_unmatched_files: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -91,10 +91,10 @@ func RunSecureUpdate(baseURL string) error {
 		return fmt.Errorf("validación de URL rechazada: %w", err)
 	}
 
-	// ── Determinar nombre del binario según OS ─────────────────────────────
-	binaryName := "tricera"
+	// ── Determinar nombre del binario según OS y Arch ──────────────────────
+	binaryName := fmt.Sprintf("tricera-%s-%s", runtime.GOOS, runtime.GOARCH)
 	if runtime.GOOS == "windows" {
-		binaryName = "tricera.exe"
+		binaryName += ".exe"
 	}
 	binaryURL := strings.TrimRight(baseURL, "/") + "/" + binaryName
 	sigURL := binaryURL + ".minisig"

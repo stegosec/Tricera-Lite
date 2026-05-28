@@ -342,8 +342,11 @@ func printEvidenceReport(results []engine.CheckResult, psirt []matcher.PSIRTFind
 				}
 				fmt.Printf("\n%s[%s]%s %s%s%s\n", severityColor, r.Status, ui.Reset, ui.Bold, r.Title, ui.Reset)
 				fmt.Printf("  ├── %sEvidencia:%s  %s\n", ui.Cyan, ui.Reset, r.Evidence)
-				if r.QuickFix != "" {
-					fmt.Printf("  └── %sRemediación:%s %s\n", ui.Green, ui.Reset, r.QuickFix)
+				if r.CLIScript != "" {
+					indentedCLI := strings.ReplaceAll(r.CLIScript, "\n", "\n      ")
+					fmt.Printf("  └── %sRemediación CLI (Dinámica):%s\n      %s\n", ui.Green, ui.Reset, indentedCLI)
+				} else if r.QuickFix != "" {
+					fmt.Printf("  └── %sRemediación (Genérica):%s %s\n", ui.Green, ui.Reset, r.QuickFix)
 				}
 			}
 		}

@@ -1472,7 +1472,21 @@ graph TD
                             <td>{{.VDOM}}</td>
                             <td>{{.Line}}</td>
                             <td><code class="evidence-text">{{.Evidence}}</code></td>
-                            <td><div style="font-size:10px; font-family:'JetBrains Mono'; opacity:0.7;">{{.QuickFix}}</div></td>
+                            <td>
+                                {{if .CLIScript}}
+                                <div class="cli-box" style="margin-top:0;">
+                                    <span class="cli-label">DINÁMICO</span>
+                                    <pre style="margin:0; white-space:pre-wrap; font-family: 'JetBrains Mono', monospace; font-size: 11px;">{{.CLIScript}}</pre>
+                                </div>
+                                {{else if .QuickFix}}
+                                <div class="cli-box" style="margin-top:0; border-color: rgba(245, 158, 11, 0.2);">
+                                    <span class="cli-label" style="background: var(--warn); color: var(--bg);">GENÉRICO</span>
+                                    <pre style="margin:0; white-space:pre-wrap; font-family: 'JetBrains Mono', monospace; font-size: 11px;">{{.QuickFix}}</pre>
+                                </div>
+                                {{else}}
+                                <span style="opacity:0.5;">Manual</span>
+                                {{end}}
+                            </td>
                         </tr>
                         {{end}}
                     {{end}}
