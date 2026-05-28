@@ -1,10 +1,10 @@
 # 🦖 Tricera - Firmware Hardening Engine
 > **Tactical & Offline FortiOS Security Audit Engine by StegoSec**
 
-[![Go Version](https://img.shields.io/badge/Language-Go%201.24-00ADD8?style=for-the-badge&logo=go&logoColor=white)](https://go.dev)
+[![Go Version](https://img.shields.io/badge/Language-Go%201.25-00ADD8?style=for-the-badge&logo=go&logoColor=white)](https://go.dev)
 [![SAST Security](https://img.shields.io/badge/SAST--Audit-PASS-brightgreen?style=for-the-badge&logo=shield)](https://github.com/stegosec/Tricera-lite)
 [![License](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)](LICENSE)
-[![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20Linux-lightgrey?style=for-the-badge)](https://github.com/stegosec/Tricera-lite/releases)
+[![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20Linux%20%7C%20macOS-lightgrey?style=for-the-badge)](https://github.com/stegosec/Tricera-lite/releases)
 
 ---
 
@@ -46,27 +46,35 @@ Si no tienes Go instalado o prefieres no compilar, sigue la guía según tu sist
 
 #### 🪟 En Windows:
 1. Ve a la pestaña de **Releases** en este repositorio de GitHub.
-2. Descarga el archivo comprimido `tricera_windows_amd64.zip`.
-3. Haz clic derecho y selecciona **Extraer todo**.
-4. Abre la consola de **PowerShell** o **Símbolo del sistema** en esa carpeta.
-5. Ejecuta tu primer análisis usando `.\tricera.exe`:
+2. Descarga el archivo binario ejecutable `tricera-windows-amd64.exe` y su firma `tricera-windows-amd64.exe.minisig` para validarlo.
+3. Abre la consola de **PowerShell** o **Símbolo del sistema** en esa carpeta.
+4. Ejecuta tu primer análisis usando:
    ```powershell
-   .\tricera.exe -file .\tu_archivo_config.conf
+   .\tricera-windows-amd64.exe -file .\tu_archivo_config.conf
    ```
 
-#### 🐧 En Linux / 🍎 macOS:
-1. Descarga el archivo `tricera_linux_amd64.tar.gz` (o `tricera_darwin_arm64` si usas Mac M1/M2) desde la sección de **Releases**.
-2. Abre tu terminal y descomprime el archivo:
+#### 🐧 En Linux:
+1. Descarga el binario `tricera-linux-amd64` (y su firma `.minisig`) de la sección de **Releases**.
+2. Abre tu terminal y concede permisos de ejecución al binario:
    ```bash
-   tar -xvf tricera_linux_amd64.tar.gz
+   chmod +x tricera-linux-amd64
    ```
-3. **Paso Crucial:** Concede permisos de ejecución al binario:
+3. Ejecuta el análisis:
    ```bash
-   chmod +x tricera
+   ./tricera-linux-amd64 -file tu_archivo_config.conf
    ```
-4. Ejecuta el análisis directamente usando `./tricera`:
+
+#### 🍎 En macOS:
+1. Descarga el binario correspondiente a tu procesador:
+   * **Apple Silicon (M1/M2/M3):** `tricera-darwin-arm64`
+   * **Intel:** `tricera-darwin-amd64`
+2. Abre tu terminal y concede permisos de ejecución al binario:
    ```bash
-   ./tricera -file tu_archivo_config.conf
+   chmod +x tricera-darwin-arm64
+   ```
+3. Ejecuta el análisis:
+   ```bash
+   ./tricera-darwin-arm64 -file tu_archivo_config.conf
    ```
 
 ### 🛠️ Opción 2: Compilación Rápida (Para Desarrolladores)
@@ -98,10 +106,10 @@ Analiza un archivo de configuración local y muestra los resultados directamente
 Analiza el archivo local, consulta en tiempo real las APIs de FortiGuard para obtener los últimos boletines PSIRT de tu versión, y exporta un panel gráfico interactivo en formato HTML para entregar a clientes o directivos (CISO):
 ```powershell
 # Ejecución en Windows (PowerShell)
-.\tricera.exe -file .\mi_archivo_fortigate.conf -intel live -format html -out reporte_live.html
+.\tricera-windows-amd64.exe -file .\mi_archivo_fortigate.conf -intel-source live -format html -out reporte_live.html
 
-# Ejecución en Linux / macOS
-./tricera -file mi_archivo_fortigate.conf -intel live -format html -out reporte_live.html
+# Ejecución en Linux
+./tricera-linux-amd64 -file mi_archivo_fortigate.conf -intel-source live -format html -out reporte_live.html
 ```
 
 ---
@@ -114,9 +122,14 @@ Opciones Generales:
   -format string        Formato de salida del reporte: text, html, json (por defecto: text)
   -out string           Ruta de destino para guardar el reporte generado (ej: reporte.html)
   -compare string       Auditoría diferencial (diff) contra otro archivo .conf
-  -intel string         Origen de inteligencia PSIRT: offline o live (por defecto: offline)
+  -intel-source string  Origen de inteligencia PSIRT: offline o live (por defecto: offline)
   -rules string         Ruta a un archivo .yaml personalizado con reglas adicionales
   -debug                Activa el modo detallado (verbose) del motor
+
+Opciones de Actualización y Versión:
+  -version              Muestra la versión actual de la herramienta
+  -update               Muestra las instrucciones manuales de actualización
+  -auto-update          Actualiza automáticamente el binario validando HTTPS y firma Minisign
 
 Opciones de la Comunidad (StegoSec):
   -hardening-guide      Imprime una guía interactiva y accionable de robustecimiento de FortiOS
