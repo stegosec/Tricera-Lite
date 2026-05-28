@@ -681,7 +681,7 @@ const htmlTemplate = `
         .cli-box { background: #0f172a; border-radius: 10px; padding: 15px; font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #f8fafc; margin-top: 10px; border: 1px solid var(--border); position: relative; }
         .cli-label { position: absolute; right: 10px; top: -10px; background: var(--primary); color: var(--bg); font-size: 8px; font-weight: 800; padding: 2px 6px; border-radius: 4px; }
 
-        .evidence-text { color: var(--primary); font-family: 'JetBrains Mono', monospace; font-size: 11px; }
+        .evidence-text { color: var(--primary); font-family: 'JetBrains Mono', monospace; font-size: 11px; word-break: break-all; overflow-wrap: break-word; }
         
         .mermaid {
             width: 100% !important;
@@ -706,7 +706,7 @@ const htmlTemplate = `
         .impact-box.tech { border-color: var(--primary); }
         .impact-title { font-size: 11px; text-transform: uppercase; font-weight: 800; margin-bottom: 5px; opacity:0.8;}
         .impact-text { font-size: 13px; line-height: 1.5; color: var(--text-dim); }
-        .risk-evidence { background: #0f172a; padding: 15px; border-radius: 10px; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--primary); border: 1px solid rgba(56, 189, 248, 0.2); margin-bottom: 15px;}
+        .risk-evidence { background: #0f172a; padding: 15px; border-radius: 10px; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--primary); border: 1px solid rgba(56, 189, 248, 0.2); margin-bottom: 15px; word-break: break-all; overflow-wrap: break-word;}
         .risk-action { display: flex; align-items:center; gap: 10px; background: rgba(16, 185, 129, 0.05); padding: 15px; border-radius: 12px; border: 1px dashed rgba(16, 185, 129, 0.3);}
         
         .ciso-tooltip { background: rgba(56, 189, 248, 0.05); border-left: 4px solid var(--primary); padding: 15px 20px; margin-bottom: 25px; border-radius: 0 8px 8px 0; font-size: 14px; opacity: 0.9; }
