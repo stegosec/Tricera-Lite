@@ -13,6 +13,7 @@ import (
 	"regexp"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/PuerkitoBio/goquery"
@@ -51,10 +52,9 @@ var (
 	// Mutex global para asegurar máximo 1 petición concurrente a FortiGuard live
 	liveMutex sync.Mutex
 
-	// Control de Circuit Breaker
-	consecutiveFailures   int
-	circuitBreakerTripped bool
-	cbMu                  sync.Mutex
+	// Control de Circuit Breaker (Lock-Free)
+	consecutiveFailures   atomic.Int32
+	circuitBreakerTripped atomic.Bool
 
 	// Bandera para habilitar/deshabilitar consultas en vivo a FortiGuard
 	LiveEnabled bool = false
@@ -222,9 +222,7 @@ func (s *Scraper) FetchAdvisories(product, version string) ([]Advisory, error) {
 	liveUsed := false
 
 	// Check if live is enabled and circuit breaker is not tripped
-	cbMu.Lock()
-	isLiveAvailable := LiveEnabled && !circuitBreakerTripped
-	cbMu.Unlock()
+	isLiveAvailable := LiveEnabled && !circuitBreakerTripped.Load()
 
 	if isLiveAvailable {
 		var allAdvisories []Advisory
@@ -305,9 +303,7 @@ func (s *Scraper) FetchAdvisories(product, version string) ([]Advisory, error) {
 		if len(offlineAdvs) > 0 {
 			// Determinar estado de reporte exacto
 			sourceText := "Resuelto desde catálogo offline embebido"
-			cbMu.Lock()
-			wasTripped := circuitBreakerTripped
-			cbMu.Unlock()
+			wasTripped := circuitBreakerTripped.Load()
 
 			if !LiveEnabled {
 				sourceText = "Resuelto desde catálogo offline embebido"
@@ -549,24 +545,18 @@ func (s *Scraper) fetchHTMLWithRetry(urlStr string) (string, error) {
 	}
 
 	// 3. Check if circuit breaker is tripped
-	cbMu.Lock()
-	if circuitBreakerTripped {
-		cbMu.Unlock()
+	if circuitBreakerTripped.Load() {
 		return "", fmt.Errorf("circuit breaker activo")
 	}
-	cbMu.Unlock()
 
 	// 3. Max 1 concurrent live request
 	liveMutex.Lock()
 	defer liveMutex.Unlock()
 
 	// Double-check CB and cache under mutex
-	cbMu.Lock()
-	if circuitBreakerTripped {
-		cbMu.Unlock()
+	if circuitBreakerTripped.Load() {
 		return "", fmt.Errorf("circuit breaker activo")
 	}
-	cbMu.Unlock()
 
 	urlCacheMu.RLock()
 	cachedHTML, found = urlCache[urlStr]
@@ -605,10 +595,8 @@ func (s *Scraper) fetchHTMLWithRetry(urlStr string) (string, error) {
 		// 403/429 triggers CB immediately
 		if resp.StatusCode == http.StatusForbidden || resp.StatusCode == http.StatusTooManyRequests {
 			resp.Body.Close()
-			cbMu.Lock()
-			consecutiveFailures = 3
-			circuitBreakerTripped = true
-			cbMu.Unlock()
+			consecutiveFailures.Store(3)
+			circuitBreakerTripped.Store(true)
 			fmt.Printf("[!] Código HTTP %d detectado en %s. Tripulando Circuit Breaker de inmediato.\n", resp.StatusCode, urlStr)
 			return "", fmt.Errorf("circuit breaker tripulado por HTTP %d", resp.StatusCode)
 		}
@@ -641,9 +629,7 @@ func (s *Scraper) fetchHTMLWithRetry(urlStr string) (string, error) {
 		}
 
 		// Reset consecutive failures
-		cbMu.Lock()
-		consecutiveFailures = 0
-		cbMu.Unlock()
+		consecutiveFailures.Store(0)
 
 		htmlStr := string(body)
 		urlCacheMu.Lock()
@@ -664,13 +650,10 @@ func (s *Scraper) fetchHTMLWithRetry(urlStr string) (string, error) {
 	}
 
 	// Update CB on failure
-	cbMu.Lock()
-	consecutiveFailures++
-	if consecutiveFailures >= 3 {
-		circuitBreakerTripped = true
+	if consecutiveFailures.Add(1) >= 3 {
+		circuitBreakerTripped.Store(true)
 		fmt.Printf("[!] 3 fallos consecutivos alcanzados. Desactivando consultas live (Circuit Breaker activado).\n")
 	}
-	cbMu.Unlock()
 
 	return "", fmt.Errorf("error tras %d intentos: %v", maxRetries, lastErr)
 }

@@ -1,19 +1,25 @@
 package main
 
 import (
+	"bytes"
 	"flag"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
 	"time"
+
+	"golang.org/x/term"
+
 	"tricera/internal/engine"
 	"tricera/internal/intelligence"
 	"tricera/internal/matcher"
 	"tricera/internal/parser"
 	"tricera/internal/report"
 	"tricera/internal/system"
+	"tricera/internal/tui"
 	"tricera/internal/ui"
 )
 
@@ -84,8 +90,16 @@ func main() {
 	}
 
 	if *filePath == "" && !*update && !*autoUpdate && *comparePath == "" {
-		flag.Usage()
-		os.Exit(0)
+		if term.IsTerminal(int(os.Stdout.Fd())) {
+			err := tui.StartApp(runAuditForTUI)
+			if err != nil {
+				ui.FatalError("Error en TUI", err.Error())
+			}
+			os.Exit(0)
+		} else {
+			flag.Usage()
+			os.Exit(0)
+		}
 	}
 
 	ui.PrintBanner()
@@ -439,4 +453,37 @@ func printEvidenceReport(results []engine.CheckResult, psirt []matcher.PSIRTFind
 	fmt.Printf("│  %s[?] Unverified:         %-28d%s │\n", ui.Cyan, unverified, ui.Cyan)
 	fmt.Println("└────────────────────────────────────────────────────────┘")
 	fmt.Printf("%s\n", ui.Reset)
+}
+
+// runAuditForTUI actúa como puente asíncrono para ejecutar el escaneo sin bloquear la interfaz gráfica Bubble Tea.
+func runAuditForTUI(path string, liveEnabled bool, reportName string) (string, error) {
+	intelligence.LiveEnabled = liveEnabled
+	oldStdout := os.Stdout
+	r, w, _ := os.Pipe()
+	os.Stdout = w
+
+	// Leer asíncronamente del pipe para evitar deadlocks cuando el buffer de escritura (64KB) se llene
+	var buf bytes.Buffer
+	done := make(chan struct{})
+	go func() {
+		io.Copy(&buf, r)
+		close(done)
+	}()
+
+	defer func() {
+		// Asegurarnos de restaurar stdout si hay un panic no atrapado
+		if os.Stdout == w {
+			w.Close()
+			os.Stdout = oldStdout
+		}
+	}()
+
+	// Ejecutar auditoría estándar suprimiendo loader (dino=false) y generando HTML con el nombre elegido
+	runSingleAudit(path, engine.GetHardeningRules(), "html", reportName, false, false)
+
+	w.Close()
+	os.Stdout = oldStdout
+	<-done // Esperar a que se termine de leer todo lo que estaba en el pipe
+
+	return buf.String(), nil
 }

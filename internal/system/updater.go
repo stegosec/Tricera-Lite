@@ -105,8 +105,13 @@ func RunSecureUpdate(baseURL string) error {
 	if err != nil {
 		return fmt.Errorf("descarga segura del binario fallida: %w", err)
 	}
-	// Garantizar limpieza del temporal en CUALQUIER escenario de error
+	// Garantizar limpieza del temporal en CUALQUIER escenario de error (incluyendo panics)
 	defer func() {
+		if r := recover(); r != nil {
+			// SEC-FIX: Asegurar limpieza en caso de panic abrupto en minisign
+			_ = os.Remove(tmpBinaryPath)
+			panic(r) // Propagar el panic después de limpiar
+		}
 		if _, statErr := os.Stat(tmpBinaryPath); statErr == nil {
 			_ = os.Remove(tmpBinaryPath)
 		}
@@ -119,6 +124,10 @@ func RunSecureUpdate(baseURL string) error {
 		return fmt.Errorf("descarga segura de la firma fallida: %w", err)
 	}
 	defer func() {
+		if r := recover(); r != nil {
+			_ = os.Remove(tmpSigPath)
+			panic(r)
+		}
 		if _, statErr := os.Stat(tmpSigPath); statErr == nil {
 			_ = os.Remove(tmpSigPath)
 		}

@@ -12,14 +12,15 @@
 
 **Tricera** es una herramienta de auditoría táctica e inteligencia de amenazas offline en consola diseñada por la comunidad de **StegoSec** para analizar y diagnosticar de forma inmediata la higiene, el robustecimiento y la superficie de exposición de configuraciones de firewalls **FortiOS (`.conf`)**.
 
-Construido en **Go**, destaca por su enfoque de **Fricción Cero**: un único binario nativo, auto-contenido, ultrarrápido y sin dependencias de Python, Docker o servicios externos.
+Construido en **Go**, destaca por su enfoque de **Fricción Cero**: un único binario nativo, auto-contenido, ultrarrápido y sin dependencias externas. A partir de la versión `v0.1.1`, Tricera incluye una potente **Terminal User Interface (TUI)** impulsada por `Bubble Tea` para una navegación interactiva y visual.
 
 ---
 
 ## ✨ Características de Impacto (Elite Suite)
 
-### 🦕 1. Dynamic Dino-Driven Terminal Experience
-Tricera redefine la experiencia en consola con un cargador porcentual interactivo de doble línea nativo. Observa al icónico **dinosaurio ASCII de 8 bits** (`🦖`/`🦕`) trotar dinámicamente y esquivar obstáculos en tiempo real al compás del progreso del análisis, culminando en un impacto explosivo (`💥🦖`) al completarse la auditoría con éxito.
+### 🦕 1. TUI Hacker & Dynamic Dino-Driven Experience (NUEVO)
+Tricera redefine la experiencia en consola. Al ejecutarse sin parámetros, despliega una **interfaz gráfica interactiva (TUI)** de alto rendimiento con temática hacker. Puedes navegar entre directorios (`..`), seleccionar tu archivo `.conf`, decidir si usar fuentes *Offline* o *Live*, y nombrar tu reporte.
+Para ambientes CI/CD automatizados, sigue manteniendo 100% de retrocompatibilidad usando los flags tradicionales, mostrando el icónico **dinosaurio ASCII** esquivando obstáculos durante el progreso.
 
 ```text
                                      🦕
@@ -93,13 +94,19 @@ go build ./cmd/tricera
 ## 💻 Guía de Ejecución y Ejemplos Prácticos
 
 ### 1. Auditoría Estándar (Consola Interactiva 🦖)
-Analiza un archivo de configuración local y muestra los resultados directamente en tu consola de manera gráfica y dinámica:
-```powershell
-# En Windows (PowerShell)
-.\tricera.exe -file .\mi_archivo_fortigate.conf
+1. Ejecuta el binario directamente (sin parámetros) para lanzar la interfaz gráfica interactiva (TUI) y navegar hasta tu archivo:
+```bash
+# Windows
+.\tricera.exe
 
-# En Linux / macOS
-./tricera -file mi_archivo_fortigate.conf
+# Linux / MacOS
+./tricera
+```
+
+### Ejecución Desatendida (Modo CLI Bypass)
+Si deseas integrarlo en tuberías CI/CD o scripts, usa el flag `-file`:
+```bash
+.\tricera.exe -file .\mi_archivo_fortigate.conf
 ```
 
 ### 2. Reporte en Vivo e Informe HTML Interactivo (¡Espectacular! 📊)
