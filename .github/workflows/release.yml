@@ -57,7 +57,7 @@ permissions:
   contents: write  # Necesario para crear GitHub Releases y subir artefactos
 
 env:
-  GO_VERSION: '1.25.0'
+  GO_VERSION: '1.25.x'
   BINARY_NAME: tricera
 
 jobs:
