@@ -94,6 +94,14 @@ jobs:
       - name: 🧪 Ejecutar go vet (análisis estático)
         run: go vet ./...
 
+      # ── Paso 4.5: Análisis de Vulnerabilidades (SCA) ───────────────────
+      - name: 🛡️ Auditoría de Seguridad (govulncheck)
+        run: |
+          echo "Instalando govulncheck..."
+          go install golang.org/x/vuln/cmd/govulncheck@latest
+          echo "Ejecutando escaneo de vulnerabilidades en el código y dependencias..."
+          govulncheck ./...
+
       # ── Paso 5: Extraer versión del tag ────────────────────────────────
       - name: 🏷️ Extraer versión del tag
         id: version
